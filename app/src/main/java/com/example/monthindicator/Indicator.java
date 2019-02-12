@@ -4,15 +4,11 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.Rect;
-import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import androidx.annotation.Nullable;
 
@@ -22,6 +18,17 @@ public class Indicator extends View {
     private int heigth;
 
     private Paint paint;
+    private int color = Color.GREEN;
+    private int colorEr = Color.RED;
+
+    private float dx;
+
+    private int min;
+    private int max;
+    private int value;
+    private float cashflow;
+    private float budget;
+    private List<Integer> dots;
 
     public Indicator(Context context) {
         super(context);
@@ -35,6 +42,7 @@ public class Indicator extends View {
 
     private void init(){
         paint = new Paint();
+        dots = new ArrayList<>();
     }
 
     @Override
@@ -43,83 +51,84 @@ public class Indicator extends View {
 
         width = MeasureSpec.getSize(widthMeasureSpec);
         heigth = MeasureSpec.getSize(heightMeasureSpec);
+
+        dx = heigth/30f;
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
 
-       paint.setColor(Color.BLACK);
-       paint.setStrokeWidth(2);
+        paint.setStrokeWidth(heigth/2f);
 
-       canvas.drawLine(0, heigth-10, width, heigth-10, paint);
+        if(cashflow > budget){
+            paint.setColor(colorEr);
+            canvas.drawLine(dx, heigth / 2f, width - dx, heigth / 2f, paint);
+        }else if(cashflow < budget){
+            paint.setColor(color);
+            float x = (cashflow/budget)*(width - 2*dx) + dx;
+            canvas.drawLine(dx, heigth / 2f, x, heigth / 2f, paint);
+        }
 
-//        canvas.drawLine(0, heigth-2, width, heigth-2, paint);
-        canvas.drawLine(2, 0, 2, heigth, paint);
+        paint.setColor(Color.BLACK);
+        paint.setStrokeWidth(dx);
 
-//        float shadowRadius = width/60f;
-//        float shadowX = cx/30;
-//        float shadowY = cy/30;
-//
-//        paint.setColor(Color.WHITE);
-//        paint.setStyle(Paint.Style.FILL_AND_STROKE);
-//        paint.setStrokeWidth(width/60f);
-//
-//        paint.setShadowLayer(shadowRadius, shadowX, shadowY, Color.GRAY);
-//        setLayerType(LAYER_TYPE_SOFTWARE, paint);
-//
-//        oval.set(cx - borderRadius, cy - borderRadius, cx + borderRadius, cy + borderRadius);
-//        canvas.drawArc(oval, START_BORDER_ANGEL, SWEEP_BORDER_ANGEL, false, paint);
-//
-//        paint.setShadowLayer(0.0f, shadowX, shadowY, Color.GRAY);
-//
-//        paint.setStyle(Paint.Style.STROKE);
-//        //paint.setColor(Color.GREEN);
-//        paint.setStrokeWidth(borderRadius/10);
-//
-//        oval.set(cx - scaleRadius, cy - scaleRadius, cx + scaleRadius, cy + scaleRadius);
-//        float a = SWEEP_SCALE_ANGEL/(maxValue - minValue);
-//        float b = START_SCALE_ANGEL - SWEEP_SCALE_ANGEL*minValue/(maxValue - minValue);
-//
-//        float a1 = SWEEP_SCALE_ANGEL/(maxValue-minValue);
-//
-//        for (Sector sector:sectors){
-//          paint.setColor(sector.getColor());
-//          canvas.drawArc(oval, a*sector.getStart() + b, a1*(sector.getEnd()-sector.getStart()), false, paint);
-//        }
-//        //canvas.drawArc(oval, START_SCALE_ANGEL, SWEEP_SCALE_ANGEL, false, paint);
-//
-//        paint.setStyle(Paint.Style.FILL);
-//        paint.setColor(Color.BLACK);
-//
-//        arrow.moveTo(cx-centerRadius, cy);
-//        arrow.lineTo(cx, cy - arrowLength);
-//        arrow.lineTo(cx+centerRadius, cy);
-//        arrow.close();
-//
-//        float angel = SWEEP_SCALE_ANGEL * value/(maxValue - minValue) - 90 - (180 - START_SCALE_ANGEL);
-//
-//        float x1 = Math.round(Math.cos(angel*Math.PI/180) * shadowX);
-//        float y1 = Math.round(Math.sin(angel*Math.PI/180) * shadowY + shadowY/2);
-//
-//        // выводим результат
-//        paint.setShadowLayer(shadowRadius, y1, x1, Color.GRAY);
-//        canvas.rotate(angel, cx,cy);
-//        canvas.drawPath(arrow, paint);
-//        canvas.rotate(-angel, cx,cy);
-//        paint.setShadowLayer(0.0f, shadowX, shadowY, Color.GRAY);
-//
-//        paint.setTextSize(borderRadius/5);
-//        paint.setColor(Color.BLACK);
-//        String text = String.format(Locale.getDefault(), "%d%%", value*100/(maxValue - minValue));
-//
-//        paint.getTextBounds(text, 0, text.length(), textBoundRect);
-//        float mTextWidth = paint.measureText(text);
-//        float mTextHeight = textBoundRect.height();
-//
-//        canvas.drawText(text,
-//                cx - (mTextWidth / 2f),
-//                cy + (mTextHeight /2f) + borderRadius*0.7f,
-//                paint
-//        );
+        canvas.drawLine(dx, heigth*5/6f, width - dx, heigth*5/6f, paint);
+
+        canvas.drawLine(dx, heigth*4/6f, dx, heigth*5/6f, paint);
+        canvas.drawLine(width - dx, heigth*4/6f, width - dx, heigth*5/6f, paint);
+
+        for (Integer dot:dots){
+            if(dot > min && dot < max) {
+                float x = dotX(dot);
+                canvas.drawLine(x, heigth * 4 / 6f, x, heigth * 5 / 6f, paint);
+            }
+        }
+
+        paint.setStrokeWidth(dx*2f);
+        float y = dotX(value);
+        canvas.drawLine(y, 0, y, heigth, paint);
+
+    }
+
+    private float dotX(int dot){
+        if(max == min){
+            return 0;
+        }
+        return (dot - min)* (width - 2 * dx)/(max - min) + dx;
+    }
+
+    public void setColor(int color) {
+        this.color = color;
+        invalidate();
+    }
+
+    public void setMin(int min) {
+        this.min = min;
+        invalidate();
+    }
+
+    public void setMax(int max) {
+        this.max = max;
+        invalidate();
+    }
+
+    public void setValue(int value) {
+        this.value = value;
+        invalidate();
+    }
+
+    public void setCashflow(float cashflow) {
+        this.cashflow = cashflow;
+        invalidate();
+    }
+
+    public void setBudget(float budget) {
+        this.budget = budget;
+        invalidate();
+    }
+
+    public void addDot(int dot){
+        dots.add(dot);
+        invalidate();
     }
 }
